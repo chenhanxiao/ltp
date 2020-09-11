@@ -34,7 +34,9 @@ TST_TOTAL=3
 # test if one of the ancestors goes over its limit, the proces will be killed
 testcase_1()
 {
-	echo 1 > memory.use_hierarchy
+        if [ "$root_memory_use_hierarchy" != "1" ]; then
+                echo 1 > memory.use_hierarchy
+        fi
 	echo $PAGESIZE > memory.limit_in_bytes
 
 	mkdir subgroup
@@ -48,6 +50,10 @@ testcase_1()
 # test Enabling will fail if the cgroup already has other cgroups
 testcase_2()
 {
+        if [ "$root_memory_use_hierarchy" = "1" ]; then
+               tst_resm TCONF "root cgroup has use_hierarchy enabled, skip"
+               return
+        fi
 	mkdir subgroup
 	EXPECT_FAIL echo 1 \> memory.use_hierarchy
 
@@ -57,7 +63,9 @@ testcase_2()
 # test disabling will fail if the parent cgroup has enabled hierarchy.
 testcase_3()
 {
-	echo 1 > memory.use_hierarchy
+        if [ "$root_memory_use_hierarchy" != "1" ]; then
+               echo 1 > memory.use_hierarchy
+        fi
 	mkdir subgroup
 	EXPECT_FAIL echo 0 \> subgroup/memory.use_hierarchy
 

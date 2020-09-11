@@ -491,6 +491,10 @@ cleanup_test()
 		orig_memory_use_hierarchy=""
 	fi
 
+	if [ -n "$root_memory_use_hierarchy" ];then
+                root_memory_use_hierarchy=""
+	fi
+
 	killall -9 memcg_process 2>/dev/null
 	wait
 
@@ -514,16 +518,27 @@ setup_test()
 	# while there are distributions (RHEL7U0Beta for example) that sets
 	# it to 1.
 	orig_memory_use_hierarchy=$(cat /dev/memcg/memory.use_hierarchy)
+        MEMCGROUP_PATH="/sys/fs/cgroup/memory"
+        if [ -e "$MEMCGROUP_PATH" ];then
+                root_memory_use_hierarchy=$(cat "$MEMCGROUP_PATH/memory.use_hierarchy")
+        fi
+
 	if [ -z "$orig_memory_use_hierarchy" ];then
 		tst_resm TINFO "cat /dev/memcg/memory.use_hierarchy failed"
 	elif [ "$orig_memory_use_hierarchy" = "0" ];then
 		orig_memory_use_hierarchy=""
 	else
-		echo 0 > /dev/memcg/memory.use_hierarchy
-		if [ $? -ne 0 ];then
-			tst_resm TINFO "set /dev/memcg/memory.use_hierarchy" \
-				"to 0 failed"
-		fi
+                if [ "$root_memory_use_hierarchy" = "1" ]; then
+                        tst_resm TINFO "root cgroup has use_hierarchy enabled, " \
+                            "can't set /dev/memcg/memory.use_hierarchy to 0"
+                        export root_memory_use_hierarchy
+                else
+                        echo 0 > /dev/memcg/memory.use_hierarchy
+                        if [ $? -ne 0 ];then
+                                tst_resm TINFO "set /dev/memcg/memory.use_hierarchy" \
+                                    "to 0 failed"
+                        fi
+                fi
 	fi
 
 	ROD mkdir "/dev/memcg/$TEST_ID"
